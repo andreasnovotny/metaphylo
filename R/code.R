@@ -130,3 +130,34 @@ GetSample <- function(ps) {
   require(phyloseq)
   return(as.data.frame(ps_16S@sam_data@.Data))
 }
+
+##################
+###################
+
+
+#' Makes a DESeq2 analysis of a phyloseq object
+#'
+#' This function makes a DESeq2 stastistical analysis and writes the results to a redable table.
+#'
+#' @param PHYLOSEQ (Required) An class S4 class phyloseq object
+#' @param VARIABLE (Required) A ~ variable character string. Representing a column in the sample dataset.
+#' @return A DEseq2 results table with significant expression level values.
+#' @examples
+#' ps <- DEseqTable(ps, ~ SORTED_type)
+#' @export
+
+DEseqTable <- function(PHYLOSEQ, VARIABLE) {
+
+  require(phyloseq)
+  require(DESeq2)
+
+  TMP <- phyloseq_to_deseq2(PHYLOSEQ, VARIABLE)
+  TMP <- DESeq(TMP, test="Wald", fitType="parametric")
+  res = results(TMP, cooksCutoff = FALSE)
+  alpha = 0.01
+  sigtab = res[which(res$padj < alpha), ]
+  sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(PHYLOSEQ)[rownames(sigtab), ], "matrix"))
+  sigtab$Sequence <- rownames(sigtab)
+  rownames(sigtab) <- sigtab$Species
+  return(sigtab)
+}
