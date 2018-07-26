@@ -6,10 +6,11 @@
 #' @param minboot (Optional, default=75) A Number between 0-100. Minimal accepted bootstrap value.
 #' @return A list of two matrices (modified tax object).
 #' @examples
-#' tax1 <- FilterTaxonomy(tax)
-#' tax2 <- FilterTaxonomy(tax, minboot=80)
+#' data("tax_16S")
+#' tax_16S <- filterTaxonomy(tax_16S, minboot = 75)
+#'
 #' @export
-FilterTaxonomy <- function(tax, minboot=75) {
+filterTaxonomy <- function(tax, minboot=75) {
 
   TAX <- as.matrix(tax$tax)
   BOOT <- as.matrix(tax$boot)
@@ -43,10 +44,12 @@ FilterTaxonomy <- function(tax, minboot=75) {
 #' @param string (Optional, default="_x") A string. Will be attached at the end of the name comming from the higher taxonomic level.
 #' @return A list of two matrices (modified tax object).
 #' @examples
-#' tax1 <- CompleteTaxonomy(tax)
-#' tax2 <- CompleteTaxonomy(tax, string="X")
+#' data("tax_16S")
+#' tax_16S <- filterTaxonomy(tax_16S, minboot = 75)
+#' tax_16S <- completeTaxonomy(tax_16S, string = "_x")
+#'
 #' @export
-CompleteTaxonomy <- function(tax, string="_x") {
+completeTaxonomy <- function(tax, string="_x") {
 
   TAX <- as.matrix(tax$tax)
   for (row in 1:nrow(TAX)) {
@@ -78,9 +81,13 @@ CompleteTaxonomy <- function(tax, string="_x") {
 #' @param metadata (Required) A data frame.
 #' @return A S4 class Phyloseq object.
 #' @examples
-#' ps <- Dada2ToPhyloseq(seqtab, tax, metadata)
+#' data("metadata_16S")
+#' data("seqtab_16S")
+#' data("tax_16S")
+#' ps_16S <- dada2ToPhyloseq(seqtab_16S, tax_16S, metadata_16S)
+#'
 #' @export
-Dada2ToPhyloseq <- function(seqtab, tax, metadata) {
+dada2ToPhyloseq <- function(seqtab, tax, metadata) {
   require(phyloseq)
   OTU <- otu_table(as.matrix(seqtab), taxa_are_rows = FALSE)
   TAX <- tax_table(as.matrix(tax$tax))
@@ -102,79 +109,24 @@ Dada2ToPhyloseq <- function(seqtab, tax, metadata) {
 #'
 #' This function takes a full phyloseq object and merges the count matrix with the taxonomy table. It also provides the option to give sample names.
 #'
-#' @param PHYLOSEQ (Required) An class S4 class phyloseq object
-#' @param HEADER (Required) A character string. Representing a column in the sample dataset.
-#' @param FILENAME (Optional, defalt="./ASV.csv") Character vector, filename.
+#' @param ps (Required) An class S4 class phyloseq object
+#' @param header (Required) A character string. Representing a column in the sample dataset.
+#' @param filename (Optional, defalt="./ASV.csv") Character vector, filename.
 #' @return A S4 class Phyloseq object.
 #' @examples
-#' ps <- PhyloseqToCSV(ps, "SORTED_type", "./phyloseq.csv")
+#' data(ps_16S)
+#' phyloseqToCSV(ps_16S, header="ID_friendly", filename="~/Desktop/RSV_16S.csv")
 #' @export
-PhyloseqToCSV <- function(PHYLOSEQ, HEADER, FILENAME="./ASV.csv") {
+phyloseqToCSV <- function(ps, header, filename="./ASV.csv") {
   require(phyloseq)
-  tax <- as.matrix(PHYLOSEQ@tax_table@.Data)
-  count <- t(as.matrix(PHYLOSEQ@otu_table@.Data))
-  metadata <- as.data.frame(PHYLOSEQ@sam_data)
-  colnames(count) <- metadata[[HEADER]]
+  tax <- as.matrix(ps@tax_table@.Data)
+  count <- t(as.matrix(ps@otu_table@.Data))
+  metadata <- as.data.frame(ps@sam_data)
+  colnames(count) <- metadata[[header]]
   ASV <- merge(tax,count, by=0)
-  write.csv(ASV, FILENAME)
+  write.csv(ASV, filename)
   return(ASV)
 }
-
-
-
-
-
-
-
-
-
-
-
-
-#' Extract Taxonomy table of a phyloseq object
-
-#'
-#' @param PHYLOSEQ (Required) An class S4 class phyloseq object.
-#' @return A matrix.
-#' @export
-
-GetTax <- function(ps) {
-  require(phyloseq)
-  return(as.matrix(ps@tax_table@.Data))
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#' Extract Sample metadata table of a phyloseq object
-
-#' @param PHYLOSEQ (Required) An class S4 class phyloseq object.
-#' @return A data frame
-#' @export
-
-GetSample <- function(ps) {
-
-  require(phyloseq)
-
-  return(as.data.frame(ps_16S@sam_data@.Data))
-}
-
-
-
-
-
-
-
 
 
 
@@ -188,12 +140,15 @@ GetSample <- function(ps) {
 #'
 #' This function makes a DESeq2 stastistical analysis and writes the results to a redable table.
 #'
-#' @param PHYLOSEQ (Required) An class S4 class phyloseq object
-#' @param VARIABLE (Required) A ~ variable character string. Representing a column in the sample dataset.
+#' @param ps (Required) An class S4 class phyloseq object
+#' @param design (Required) A ~ variable character string. Representing a column in the sample dataset.
 #' @param speciesAsNames (Optional) Boolean (Default = TRUE). If true, species names will be the tables row name.
 #' @return A DEseq2 results table with significant expression level values.
 #' @examples
-#' ps <- DEseqTable(ps, ~ SORTED_type)
+#' data(ps_16S)
+#' ps_16S <- subset_samples(ps_16S, MONTH == "aug")
+#' ps_16S <- subset_samples(ps_16S, SORTED_type == "Rotifer")
+#' ddstab_16S <- deseqTable(ps_16S, ~ SORTED_type)
 #' @export
 
 deseqTable <- function(ps, design, speciesAsNames=TRUE) {
@@ -206,7 +161,7 @@ deseqTable <- function(ps, design, speciesAsNames=TRUE) {
   res = results(tmp, cooksCutoff = FALSE)
   alpha = 0.01
   sigtab = res[which(res$padj < alpha), ]
-  sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(PHYLOSEQ)[rownames(sigtab), ], "matrix"))
+  sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(ps)[rownames(sigtab), ], "matrix"))
   if (speciesAsNames == TRUE) {
     sigtab$Sequence <- rownames(sigtab)
     rownames(sigtab) <- sigtab$Species
@@ -234,14 +189,16 @@ deseqTable <- function(ps, design, speciesAsNames=TRUE) {
 #' This function filters away taxa only present in few samples.
 #'
 #'
-#' @param ps (Required) An class S4 class phyloseq object.
+#' @param ps (Required) A class S4 class phyloseq object.
 #' @param method (Optional, default="logRaw") "logRaw" (log transformation) or "vst" (variance stabilising DESeq2 transformation)
 #' @param cutoff (Optional, default=0.8) A numeric value between 0:1.
 #' @param mincount (Optional, default=10) An integer, bigger than 0. Abundance value as been counted as presence. Only effective if method="logRaw".
 #' @param dsign (Required if method="rsv") A ~ variable character string. Representing a column in the sample dataset.
-#' @return A DEseq2 results table with significant expression level values.
+#' @return A class S4 class phyloseq object.
 #' @examples
-#' ps <- abundancePlot(ps_18S, cutoff=0.6)
+#' data(ps_16S)
+#' ps_16S <- subset_samples(ps_16S, SORTED_genus == "Synchaeta")
+#' ps_16S <- relevantSpecies(ps_16S, method = "vst", cutoff = 0.75, design = ~ ID_friendly)
 #' @export
 
 relevantSpecies <- function(ps, method="logRaw", cutoff=0.75, mincount=10, design) {
@@ -285,7 +242,11 @@ relevantSpecies <- function(ps, method="logRaw", cutoff=0.75, mincount=10, desig
 #' @param fill (Optional, default="Genus") A character string. Representing a taxonomic level.
 #' @return A DEseq2 results table with significant expression level values.
 #' @examples
-#' ps <- abundancePlot(ps_18S, x="Genus")
+#' data(ps_16S)
+#' ps_16S <- subset_samples(ps_16S, SORTED_genus == "Synchaeta")
+#' ps_16S <- relevantSpecies(ps_16S, method = "vst", cutoff = 0.75, design = ~ ID_friendly)
+#' plot <- abundancePlot(ps_16S, x = "Species", fill = "Genus")
+#'
 #' @export
 
 abundancePlot <- function(ps, x="Species", fill="Genus") {
@@ -332,7 +293,8 @@ abundancePlot <- function(ps, x="Species", fill="Genus") {
 #' @param design (Required) A ~ variable character string. Representing a column in the sample dataset.
 #' @return An S4 class phyloseq object, with transformed counts.
 #' @examples
-#' ps_18S_1 <- getVST(ps_18S, ~MONTH+SORTED_genus)
+#' data(ps_16S)
+#' ps_16S_vst <- getVST(ps_16S, ~MONTH+SORTED_genus)
 #' @export
 
 getVst <- function(ps, design) {
@@ -364,7 +326,9 @@ getVst <- function(ps, design) {
 #' @param vst (Optional, default=FALSE) Boolean operator. If TRUE, the dataset gets variance stabalising transformation.
 #' @return An S4 class phyloseq object, filtered
 #' @examples
-#' ps_18S_1 <- getSignificant(ps_18S, ~MONTH+SORTED_genus)
+#' data(ps_16S)
+#' ps_16S <- subset_samples(ps_16S, SORTED_genus == "Synchaeta")
+#' ps_16S_sig <- getSignificant(ps_16S, ~MONTH)
 #' @export
 
 getSignificant <- function(ps, design, number = 50, alpha = 0.01, vst=FALSE) {
@@ -376,7 +340,7 @@ getSignificant <- function(ps, design, number = 50, alpha = 0.01, vst=FALSE) {
   dds <- DESeq(dds) # Run DESeq2 analysis
   res <- results(dds)
   res <- res[order(res$padj, na.last = NA), ] #Sort result table in order, most significant first.
-  keepOTUs <- rownames(res[res$padj > alpha, ])[1:number] # Keep only the top 50 most significant taxa.
+  keepOTUs <- rownames(res[res$padj <= alpha, ])[1:number] # Keep only the top 50 most significant taxa.
 
   if (vst==FALSE) {
     ps1 <- prune_taxa(keepOTUs, ps) # Remove nonsignificant taxa from phyloseq

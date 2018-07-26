@@ -13,3 +13,7 @@ RoxygenNote: 6.0.1
 Suggests: knitr,
     rmarkdown
 VignetteBuilder: knitr
+Imports: dada2,
+    phyloseq,
+    DESeq2,
+    ggplot2

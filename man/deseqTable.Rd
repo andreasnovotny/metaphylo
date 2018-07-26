@@ -7,11 +7,11 @@
 deseqTable(ps, design, speciesAsNames = TRUE)
 }
 \arguments{
+\item{ps}{(Required) An class S4 class phyloseq object}
+
+\item{design}{(Required) A ~ variable character string. Representing a column in the sample dataset.}
+
 \item{speciesAsNames}{(Optional) Boolean (Default = TRUE). If true, species names will be the tables row name.}
-
-\item{PHYLOSEQ}{(Required) An class S4 class phyloseq object}
-
-\item{VARIABLE}{(Required) A ~ variable character string. Representing a column in the sample dataset.}
 }
 \value{
 A DEseq2 results table with significant expression level values.

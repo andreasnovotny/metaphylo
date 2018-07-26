@@ -1,0 +1,148 @@
+#' Metadata for 16S gene
+#'
+#' Plankton foodweb metabarcoding project, Stockholm University 2017-2918
+#'
+#' @format A data frame with 40 variables and 130 observations containing information about samples analysed on Illumina MiSeq platform with 16S rRNA primers:
+#' \describe{
+#' \item{LIBRARY_concentration}{Concentration of library after outer PCR before normalization (Qbit)}
+#' \item{LIBRARY_type}{Primer type}
+#' \item{GENE}{16S or 18S}
+#' \item{LIBRARY_ID}{Name of ready made library}
+#' \item{LIBRARY_fwindex}{Name of forward index sequence}
+#' \item{LIBRARY_rvindex}{Name of reverse index sequence}
+#' \item{INNER_primer}{Name of primer pair}
+#' \item{INNER_blockingprimer}{TRUE= blocking primer has been used. FALSE= blocking primer has not been used.}
+#' \item{INNER_date}{Date of preparation of Inner PCR}
+#' \item{INNER_purified_date}{Date of purification of inner PCR product}
+#' \item{DNA_date}{Date of DNA extraction}
+#' \item{DNA_elutionvolume}{Volume of DNA elution}
+#' \item{DNA_protocol}{Protocul used for DNA extraction}
+#' \item{DNA_person}{Person doing DNA extraction}
+#' \item{SORTED_ID}{ID of sorted zooplankton}
+#' \item{SORTED_type}{Type of sorted organism (supergroup)}
+#' \item{SORTED_genus}{Genus of sorted organism}
+#' \item{SORTED_number}{Number of organisms sorted}
+#' \item{SORTED_date}{Date of sorting}
+#' \item{SORTED_person}{Person doing sorting}
+#' \item{SORTED_method}{Method used for sorting}
+#' \item{SAMPLE_ID}{ID of environmental sample}
+#' \item{SAMPLE_sampling_number}{ID of sampling event}
+#' \item{SAMPLE_date}{Date of sampling}
+#' \item{STATION_ID}{Sampling station ID}
+#' \item{STATION_location}{Location of sampling station}
+#' \item{STATION_depth}{Maximum depth at sampling station}
+#' \item{SAMPLE_vessel}{Research vessel used for sampling}
+#' \item{SAMPLE_type}{Purpose of sample (Bulk water or for zooplankton sorting)}
+#' \item{SAMPLE_method}{Method of sampling}
+#' \item{SAMPLE_depth}{Depth range where sample was collected}
+#' \item{SAMPLE_strata}{Clustered depth (Surface or Depth)}
+#' \item{FILTER_date}{Date of water filtration}
+#' \item{FILTER_poresize}{Filter pore size}
+#' \item{FILTER_Material}{Filter material}
+#' \item{FILTER_volume}{Volume filtered}
+
+#' }
+"metadata_16S"
+
+
+
+#' Metadata for 18S gene
+#'
+#' Plankton foodweb metabarcoding project, Stockholm University 2017-2918
+#'
+#' @format A data frame with 40 variables and 130 observations containing information about samples analysed on Illumina MiSeq platform with 18S rRNA primers:
+#' \describe{
+#' \item{LIBRARY_concentration}{Concentration of library after outer PCR before normalization (Qbit)}
+#' \item{LIBRARY_type}{Primer type}
+#' \item{GENE}{16S or 18S}
+#' \item{LIBRARY_ID}{Name of ready made library}
+#' \item{LIBRARY_fwindex}{Name of forward index sequence}
+#' \item{LIBRARY_rvindex}{Name of reverse index sequence}
+#' \item{INNER_primer}{Name of primer pair}
+#' \item{INNER_blockingprimer}{TRUE= blocking primer has been used. FALSE= blocking primer has not been used.}
+#' \item{INNER_date}{Date of preparation of Inner PCR}
+#' \item{INNER_purified_date}{Date of purification of inner PCR product}
+#' \item{DNA_date}{Date of DNA extraction}
+#' \item{DNA_elutionvolume}{Volume of DNA elution}
+#' \item{DNA_protocol}{Protocul used for DNA extraction}
+#' \item{DNA_person}{Person doing DNA extraction}
+#' \item{SORTED_ID}{ID of sorted zooplankton}
+#' \item{SORTED_type}{Type of sorted organism (supergroup)}
+#' \item{SORTED_genus}{Genus of sorted organism}
+#' \item{SORTED_number}{Number of organisms sorted}
+#' \item{SORTED_date}{Date of sorting}
+#' \item{SORTED_person}{Person doing sorting}
+#' \item{SORTED_method}{Method used for sorting}
+#' \item{SAMPLE_ID}{ID of environmental sample}
+#' \item{SAMPLE_sampling_number}{ID of sampling event}
+#' \item{SAMPLE_date}{Date of sampling}
+#' \item{STATION_ID}{Sampling station ID}
+#' \item{STATION_location}{Location of sampling station}
+#' \item{STATION_depth}{Maximum depth at sampling station}
+#' \item{SAMPLE_vessel}{Research vessel used for sampling}
+#' \item{SAMPLE_type}{Purpose of sample (Bulk water or for zooplankton sorting)}
+#' \item{SAMPLE_method}{Method of sampling}
+#' \item{SAMPLE_depth}{Depth range where sample was collected}
+#' \item{SAMPLE_strata}{Clustered depth (Surface or Depth)}
+#' \item{FILTER_date}{Date of water filtration}
+#' \item{FILTER_poresize}{Filter pore size}
+#' \item{FILTER_Material}{Filter material}
+#' \item{FILTER_volume}{Volume filtered}
+#' \item{ID_friendly}{summarized information about the unique sample}
+#' \item{MONTH}{Month of sampling}
+
+#' }
+"metadata_18S"
+
+
+
+
+#' Read qount matrix for 18S gene
+#'
+#' Plankton foodweb metabarcoding project, Stockholm University 2017-2018.
+#' Data generated on Illumina Miseq platform.
+#'
+#' @format A matrix with raw read counts as achieved by dada2 R package pipeline, with sample names as column names and exact sequence as row name.
+#' @source Exact analysis code to generate this data \url{https://github.com/andreasnovotny/DadaSlurm}
+
+"seqtab_18S"
+
+
+#' Read qount matrix for 16S gene
+#'
+#' Plankton foodweb metabarcoding project, Stockholm University 2017-2018
+#' Data generated on Illumina Miseq platform.
+#'
+#' @format A matrix with raw read counts as achieved by dada2 R package pipeline, with sample names as column names and exact sequence as row name.
+#' @source Exact analysis code to generate this data \url{https://github.com/andreasnovotny/DadaSlurm}
+
+"seqtab_16S"
+
+
+
+#' Taxonomic information for 16S gene
+#'
+#' Plankton foodweb metabarcoding project, Stockholm University 2017-2018
+#' Data generated on Illumina Miseq platform.
+#'
+#' @format A list containing to matrixes, as generated by the dada2 R package pipeline:#' \describe{
+#' \item{$tax}{Taxonomic affiliation for each exact sequence variant}
+#' \item{$boot}{Bootstrap value of each taxonomic affiliation}
+#' }
+#' @source Exact analysis code to generate this data \url{https://github.com/andreasnovotny/DadaSlurm}
+
+"tax_16S"
+
+
+#' Taxonomic information for 18S gene
+#'
+#' Plankton foodweb metabarcoding project, Stockholm University 2017-2018
+#' Data generated on Illumina Miseq platform.
+#'
+#' @format A list containing to matrixes, as generated by the dada2 R package pipeline:#' \describe{
+#' \item{$tax}{Taxonomic affiliation for each exact sequence variant}
+#' \item{$boot}{Bootstrap value of each taxonomic affiliation}
+#' }
+#' @source Exact analysis code to generate this data \url{https://github.com/andreasnovotny/DadaSlurm}
+
+"tax_18S"
