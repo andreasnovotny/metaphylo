@@ -17,7 +17,7 @@ Install with devtools:
 ```
 library(devtools)
 
-install_github("andreasnovotny/metaphylo", auth_token = "cc00cf689d3a412aa3e3082d19f4133a286452ed")
+install_github("andreasnovotny/metaphylo", auth_token = "cc00cf689d3a412aa3e3082d19f4133a286452ed", build_vignettes=TRUE)
 
 library("metaphylo")
 ```
