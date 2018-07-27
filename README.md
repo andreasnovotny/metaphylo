@@ -24,6 +24,8 @@ library("metaphylo")
 
 ## Instructions
 
+Instructions for using the package are in the package vignette:
+
 ```
 browseVignettes("metaphylo")
 ```

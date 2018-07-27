@@ -24,5 +24,7 @@ An S4 class phyloseq object, filtered
 Filters Phyloseq object by taxa with significantly different abundance
 }
 \examples{
-ps_18S_1 <- getSignificant(ps_18S, ~MONTH+SORTED_genus)
+data(ps_16S)
+ps_16S <- subset_samples(ps_16S, SORTED_genus == "Synchaeta")
+ps_16S_sig <- getSignificant(ps_16S, ~MONTH)
 }

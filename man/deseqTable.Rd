@@ -20,5 +20,8 @@ A DEseq2 results table with significant expression level values.
 This function makes a DESeq2 stastistical analysis and writes the results to a redable table.
 }
 \examples{
-ps <- DEseqTable(ps, ~ SORTED_type)
+data(ps_16S)
+ps_16S <- subset_samples(ps_16S, MONTH == "aug")
+ps_16S <- subset_samples(ps_16S, SORTED_type == "Rotifer")
+ddstab_16S <- deseqTable(ps_16S, ~ SORTED_type)
 }

@@ -18,6 +18,7 @@ A list of two matrices (modified tax object).
 This function takes the output taxonomy table from the DADA2::assignTaxonomy and filters it based on bootstrap value.
 }
 \examples{
-tax1 <- FilterTaxonomy(tax)
-tax2 <- FilterTaxonomy(tax, minboot=80)
+data("tax_16S")
+tax_16S <- filterTaxonomy(tax_16S, minboot = 75)
+
 }

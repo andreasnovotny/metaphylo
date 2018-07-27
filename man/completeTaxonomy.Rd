@@ -18,6 +18,8 @@ A list of two matrices (modified tax object).
 This function assigns the higher taxonomic ranks to unassigned taxoomic levels, using the output of DADA2::assignTaxonomy.
 }
 \examples{
-tax1 <- CompleteTaxonomy(tax)
-tax2 <- CompleteTaxonomy(tax, string="X")
+data("tax_16S")
+tax_16S <- filterTaxonomy(tax_16S, minboot = 75)
+tax_16S <- completeTaxonomy(tax_16S, string = "_x")
+
 }

@@ -8,7 +8,7 @@ relevantSpecies(ps, method = "logRaw", cutoff = 0.75, mincount = 10,
   design)
 }
 \arguments{
-\item{ps}{(Required) An class S4 class phyloseq object.}
+\item{ps}{(Required) A class S4 class phyloseq object.}
 
 \item{method}{(Optional, default="logRaw") "logRaw" (log transformation) or "vst" (variance stabilising DESeq2 transformation)}
 
@@ -19,11 +19,13 @@ relevantSpecies(ps, method = "logRaw", cutoff = 0.75, mincount = 10,
 \item{dsign}{(Required if method="rsv") A ~ variable character string. Representing a column in the sample dataset.}
 }
 \value{
-A DEseq2 results table with significant expression level values.
+A class S4 class phyloseq object.
 }
 \description{
 This function filters away taxa only present in few samples.
 }
 \examples{
-ps <- abundancePlot(ps_18S, cutoff=0.6)
+data(ps_16S)
+ps_16S <- subset_samples(ps_16S, SORTED_genus == "Synchaeta")
+ps_16S <- relevantSpecies(ps_16S, method = "vst", cutoff = 0.75, design = ~ ID_friendly)
 }

@@ -20,5 +20,6 @@ A S4 class Phyloseq object.
 This function takes a full phyloseq object and merges the count matrix with the taxonomy table. It also provides the option to give sample names.
 }
 \examples{
-ps <- PhyloseqToCSV(ps, "SORTED_type", "./phyloseq.csv")
+data(ps_16S)
+phyloseqToCSV(ps_16S, header="ID_friendly", filename="~/Desktop/RSV_16S.csv")
 }

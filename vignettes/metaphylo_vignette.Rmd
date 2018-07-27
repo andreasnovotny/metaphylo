@@ -3,18 +3,13 @@ title: "Analysing Plankton Diet Metabarcoding Data"
 author: "Andreas Novotny"
 date: "`r Sys.Date()`"
 vignette: >
-  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteIndexEntry{Analysing Plankton Diet Metabarcoding Data}
   %\VignetteEngine{knitr::rmarkdown}
   \usepackage[utf8]{inputenc}
 ---
-```{r setup, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
 
-```{r}
+
+```{r message=FALSE}
 # Loading packages required for this vingette
 library(dada2)
 library(phyloseq)
@@ -25,14 +20,18 @@ library(metaphylo)
 
 # 1. Opening data and construct a phyloseq object
 
-```{r}
+This is the RAW output data files from the dada2 pipeline analysis at UPPMAX, together with the metadata. Nothing has been modified.
+
+```{r message=FALSE}
 #Loading data from this package, to be used in the vingette
 data("metadata_16S")
 data("seqtab_16S")
 data("tax_16S")
 ```
 
-Use help documentation to se more information about data and functions:
+
+
+Use help documentation to see more information about data and functions:
 
 ```{r}
 ?metadata_16S
@@ -42,10 +41,10 @@ Use help documentation to se more information about data and functions:
 
 ### 1.1 Modify the taxonomy output from dada2
 
-The *filterTaxonomy* function deleats all the taxonomic information with high uncertenty,
-below a sertain thershold for the bootstrap value, and replaces it with Na.
+The *filterTaxonomy* function deletes all the taxonomic information with high uncertainty,
+below a certain threshold for the bootstrap value, and replaces it with Na.
 
-To avoid Na`s in the dataset, that carris no information, the *completeTaxonomy* function fills the empty gaps with information from the higher taxonomic levels.
+To avoid Na`s in the data set, that carries no information, the *completeTaxonomy* function fills the empty gaps with information from the higher taxonomic levels.
 
 ```{r}
 tax_16S <- filterTaxonomy(tax_16S, minboot = 75)
@@ -62,78 +61,192 @@ Tax glom is a phyloseq function that collapses sequence variants with the same t
 
 *This operation might take up to 5 minutes*.
 
-```{r}
-ps_16S <- dada2ToPhyloseq(seqtab_16S, tax_16S, metadata_16S) #%>% 
-#  tax_glom(taxrank = "Species")
+```{r eval=FALSE}
+ps_16S <- dada2ToPhyloseq(seqtab_16S, tax_16S, metadata_16S) %>% 
+  tax_glom(taxrank = "Species")
 ```
 
 ### 1.3 Create a CSV table from the phyloseq object, to open in excel.
 
-```{r}
-#phyloseqToCSV(ps_16S, header="ID_friendly", filename="~/Desktop/RSV_16S.csv")
+At any time, any created and modified phyloseq object can be saved as a csv file.
+```{r eval=FALSE}
+phyloseqToCSV(ps_16S, header="ID_friendly", filename="~/Desktop/RSV_16S.csv")
 ```
-```{r include=FALSE}
+
+```{r}
 data(ps_16S)
 ```
 
 
-```{r include=FALSE}
-# Accessors of the 18S PS object:
-sample_names(ps_16S) # Formal names of samples
-sample_variables(ps_16S) # Metadata variables
-rank_names(ps_16S) # Taxonomic levels
+# 2. Working with the phyloseq object
 
-get_variable(ps_16S, "SORTED_type") # Access any metadata variable
-#get_taxa() # Abundance values for one OTU
-#get_sample() # Abundance value for one sample
+*This is short summary of the essential functions of the phyloseq package only*
+
+The phyloseq object created in the first section can be loaded directly in this package:
+
+```{r}
+data(ps_16S)
+data(ps_18S)
+```
+
+### 2.1 Browse through the phyloseq object:
+
+The phyloseq object consists of three data tables: the OTU_table (with abundance data), the sample_data, (containing the metadata), and the tax_table (containing the taxonomic information).
+
+```{r}
+ps_16S
+```
+
+Each data table can be accessed with the @ symbol:
+```{r eval=FALSE}
+ps_16S@sam_data
 ```
 
 
-# 2. Analysing the phyloseq object with DEseq2
+These 4 functions gives access to specific information the phyloseq object
+```{r eval=FALSE}
+sample_names(ps_16S) # Formal names of samples
 
-### 2.1 Get table of significant fold change expressions
+sample_variables(ps_16S) # Metadata variables
+
+rank_names(ps_16S) # Taxonomic levels
+
+get_variable(ps_16S, "SORTED_type") # Access any metadata variable
+```
+
+
+### 2.2 Filter the phyloseq object:
+
+**Easy filtering is the most important feature of phyloseq:**
+
+*subset_samples* allows for sub-setting by column in the metadata:
+
+```{r eval=FALSE}
+# To get samples from August:
+ss <- subset_samples(ps_16S, MONTH=="aug")
+get_variable(ss, "ID_friendly")
+
+#To get only rotifers:
+ss <- subset_samples(ps_16S, SORTED_type=="Rotifer")
+get_variable(ss, "ID_friendly")
+```
+
+
+*subset_taxa* allows for sub-setting by the taxonomic level:
+
+```{r eval=FALSE}
+# To get only the chloroplast taxonomy
+ss <- subset_taxa(ps_16S, Domain=="Chloroplast")
+ss # Only 100 taxa left
+```
+
+*filter_taxa* allows for filtering by the abundance data. This is done by using a logical function(x).
+The function goes through the OTU table, taxa by taxa. The function can be simple or complicated:
+
+```{r eval=FALSE}
+# sum(x) has to be bigger than 0, ie taxa with no counts are discarded.
+ss <- filter_taxa(ps_16S, function(x) sum(x)<0, TRUE)
+ss
+```
+
+*transform_sample_counts* allows for data transformation, by using a logical function(x).
+
+```{r eval=FALSE}
+# To make log transformation:
+tps <- transform_sample_counts(ps_16S, function(x) log(x))
+
+# Percentage of full library:
+tps <- transform_sample_counts(ps_16S, function(x) x/sum(x)*100)
+```
+
+
+Finally these functions can be combined to access the exact data-set wanted.
+In this example the cyanobacteria from Synchaeta in August are visualized as percentage:
 
 ```{r}
+ss <- ps_16S %>% # We use our phyloseq object as an input
+  subset_samples(SORTED_genus=="Synchaeta") %>%  # First we select only rotifers
+  subset_samples(MONTH=="aug") %>%  #Then we select only samples from august
+  subset_taxa(Phylum=="Cyanobacteria") %>%  # We are only interested in the Cyanobacteria
+  transform_sample_counts(function(x) x/sum(x)*100) %>%   # Counts are transformed into percentage
+  plot_bar(fill="Genus") # And finally ploted
+ss
+```
+
+
+
+# 3. Analysing the phyloseq object with DEseq2
+
+**OBS** Data going to any DESeq2 function should never be transformed or normalized!
+
+**VST** is Variance Stabilizing Transformation and is conducted by the DESeq2 functions. This is the proper transformation to be used for metabarcoding data (assumes negative binomial distribution).
+
+
+### 3.1 Get table of significant fold change expressions
+
+This code will compares the diet of Synchaeta and Keratella.
+*deseqTable* sends the phyloseq object to DESeq2 and compares two groups.
+The "~" statement is the key of the experimental design.
+```{r eval=FALSE}
+?deseqTable
+```
+
+```{r eval=FALSE}
 dds_table <- ps_16S %>% 
   subset_samples(MONTH == "aug") %>%
   subset_samples(SORTED_type == "Rotifer") %>% 
   deseqTable(~ SORTED_genus)
+dds_table
 ```
 
-### 2.2 Select relevant prey organisms and make boxplot
+### 3.2 Select relevant prey organisms and make boxplot
 
-*relevantSpecies*
-*abundancePlot*
+*relevantSpecies* Is a way to select for "frequency of occurrence". Here the "cutoff" has an essential function.
 
-```{r}
+*abundancePlot* is a way to plot the abundance of different taxa among replicates of samples. (Uses Box plot of ggplot)
+
+```{r eval=FALSE}
+?relevantSpecies
+?abundancePlot
+```
+
+
+```{r message=FALSE}
 
 plot <- ps_16S %>% 
-  subset_samples(SORTED_genus == "Synchaeta") %>% 
-  relevantSpecies(method = "vst", cutoff = 0.75, design = ~ ID_friendly) %>% 
+  subset_samples(SORTED_genus == "Synchaeta") %>% # Select synchaeta
+  relevantSpecies(method = "vst", cutoff = 0.75, design = ~ ID_friendly) %>% # Taxa that are present in less than 70% of the samples are filtered away.
   abundancePlot(x = "Species", fill = "Genus")
 plot
 
 ```
 
 
-### 2.3 Create heat map of significant and relevant fold change expressions
+### 3.3 Create heat map of significant and relevant fold change expressions
+
+*getSignificant* is a way to filter a phyloseq object so that only significantly different taxa remains. It uses DESeq2 to get significance values.
+Synchaeta from august and march is compared.
 
 
-*getSignificant*
-
-```{r}
-# Potentially publishable graph!!!!
+First we make a list of relevant taxa, that are present in many of the samples:
+```{r message=FALSE}
 
 relevant_otu <- ps_16S %>% 
-  subset_samples(SORTED_genus=="Synchaeta") %>%
-  subset_samples(MONTH!="may") %>% 
-  relevantSpecies(method = "vst", cutoff=0.3, design = ~ID_friendly) %>%
+  subset_samples(SORTED_genus=="Synchaeta") %>% # Synchaeta is selected
+  subset_samples(MONTH!="may") %>% # Synchaeta from may is removed.
+  relevantSpecies(method = "vst", cutoff=0.3, design = ~MONTH) %>% # Taxa has to be present in more than 30% of the samples.
   taxa_names()
+```
+
+Then we use the list to select only significant taxa:
+Here, again the "~" is the important experimental design. We are comparing the effect of MONTH.
+
+```{r message=FALSE}
 plot <- ps_16S %>%
   subset_samples(SORTED_genus=="Synchaeta") %>%
   subset_samples(MONTH!="may") %>%
   prune_taxa(relevant_otu, .) %>% 
-  getSignificant(design = ~MONTH, alpha = 0.01, number = 50, vst = TRUE) %>%
+  getSignificant(design = ~MONTH, alpha = 0.01, number = 50, vst = TRUE) %>% # 
   plot_heatmap(taxa.order = "Phylum",
                taxa.label = "Genus",
                sample.label = "ID_friendly", 
@@ -143,8 +256,20 @@ plot
 ```
 
 
+### 3.4 Get a DESeq2 transformed phyloseq object:
+
+*getVst* For downstream analysis, it can be beneficial to use a transformed data-set. This function makes variance stabilizing transformation of the phyloseq object.
+
+```{r eval=FALSE}
+ps_16S %>% 
+  subset_samples(SORTED_type=="Rotifer") %>% #Subsetting
+  getVst(~SORTED_genus) %>% # DESeq2 transformation
+  phyloseqToCSV(ID_friendly, "~/Desktop/rotifersvst_RSV.csv") # Continue with the result, or prin to CSV.
+  
+```
 
 
+# 5. Session info
 
 ```{r}
 sessionInfo()

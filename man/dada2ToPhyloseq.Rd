@@ -20,5 +20,9 @@ A S4 class Phyloseq object.
 This function takes the output from DADA2 package and returns a complete phyloseq object.
 }
 \examples{
-ps <- Dada2ToPhyloseq(seqtab, tax, metadata)
+data("metadata_16S")
+data("seqtab_16S")
+data("tax_16S")
+ps_16S <- dada2ToPhyloseq(seqtab_16S, tax_16S, metadata_16S)
+
 }

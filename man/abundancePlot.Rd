@@ -20,5 +20,9 @@ A DEseq2 results table with significant expression level values.
 This function make boxplots of filtered phyloseq objects.
 }
 \examples{
-ps <- abundancePlot(ps_18S, x="Genus")
+data(ps_16S)
+ps_16S <- subset_samples(ps_16S, SORTED_genus == "Synchaeta")
+ps_16S <- relevantSpecies(ps_16S, method = "vst", cutoff = 0.75, design = ~ ID_friendly)
+plot <- abundancePlot(ps_16S, x = "Species", fill = "Genus")
+
 }

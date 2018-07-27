@@ -18,5 +18,6 @@ An S4 class phyloseq object, with transformed counts.
 Variance stabilizing transformation of phyloseq object using DESeq2
 }
 \examples{
-ps_18S_1 <- getVST(ps_18S, ~MONTH+SORTED_genus)
+data(ps_16S)
+ps_16S_vst <- getVST(ps_16S, ~MONTH+SORTED_genus)
 }
