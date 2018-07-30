@@ -145,7 +145,7 @@ The function goes through the OTU table, taxa by taxa. The function can be simpl
 
 ```{r eval=FALSE}
 # sum(x) has to be bigger than 0, ie taxa with no counts are discarded.
-ss <- filter_taxa(ps_16S, function(x) sum(x)<0, TRUE)
+ss <- filter_taxa(ps_16S, function(x) sum(x)>0, TRUE)
 ss
 ```
 
