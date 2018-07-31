@@ -129,8 +129,31 @@ phyloseqToCSV <- function(ps, header, filename="./ASV.csv") {
 }
 
 
-
-
+#' Writes a phyloseq object as matrix, specifying rownames as prey and colnames as species.
+#'
+#' This function takes a full phyloseq object and merges the count matrix with the taxonomy table. It also provides the option to give sample names.
+#'
+#' @param ps (Required) An class S4 class phyloseq object
+#' @param colname (Required) A character string. Representing a column in the sample dataset.
+#' @param rowname (Optional, defalt="Species") A character string. Representing a column in the sample dataset.
+#' @return A S4 class Phyloseq object.
+#' @examples
+#' data(ps_18S)
+#' phyloseqToMatrix(ps_18S, colnames="ID_friendly")
+#' @export
+phyloseqToMatrix <- function(ps, colname, rowname="Species") {
+  require(phyloseq)
+  tax <- as.matrix(ps@tax_table@.Data)
+  tax_levels <- length(rank_names(ps))+1
+  count <- t(as.matrix(ps@otu_table@.Data))
+  metadata <- as.data.frame(ps@sam_data)
+  colnames(count) <- metadata[[colname]]
+  ASV <- as.data.frame(merge(tax,count, by=0))
+  rownames(ASV) <- ASV[[rowname]]
+  ASV[1:tax_levels] <- list(NULL)
+  ASV <- as.matrix(ASV)
+  return(ASV)
+}
 
 
 
