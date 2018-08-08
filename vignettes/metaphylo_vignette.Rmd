@@ -275,15 +275,18 @@ ps_16S %>%
 
 Many R-packages and plots require a simple matrix as an input object. (Visweb, Plotweb ect). The ´phyloseqToMatrix* function condenses the phyloseq object to a matrix with custom specified rownames and colnames.
 
-```{r}
+```{r message=FALSE}
 library(bipartite) # Install Bipartite if it is not installed.
+```
+
+
+```{r}
 
 ps_18S %>% 
   subset_samples(SORTED_genus=="Keratella") %>%
   subset_taxa(Species != "Rotifera_XX_x_x") %>% 
-  phyloseqToMatrix(colnames="ID_friendly", rownames="Species") %>%
+  phyloseqToMatrix(colname="ID_friendly", rowname="Species") %>%
   plotweb(method="normal") # Plot from the Bipartite package.
-
 
 
 ```
