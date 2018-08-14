@@ -16,4 +16,6 @@ VignetteBuilder: knitr
 Imports: dada2,
     phyloseq,
     DESeq2,
-    ggplot2
+    ggplot2,
+    bipartite,
+    magrittr

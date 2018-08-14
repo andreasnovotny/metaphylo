@@ -22,6 +22,11 @@ install_github("andreasnovotny/metaphylo", auth_token = "cc00cf689d3a412aa3e3082
 library("metaphylo")
 ```
 
+## Dependencies
+
+Before installation, make shore that these packages are installed:
+(dada2, phyloseq, DESeq2, ggplot2, bipartite, magrittr)
+
 ## Instructions
 
 Instructions for using the package are in the package vignette:

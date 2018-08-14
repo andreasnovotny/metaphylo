@@ -141,12 +141,14 @@ phyloseqToCSV <- function(ps, header, filename="./ASV.csv") {
 #' data(ps_18S)
 #' phyloseqToMatrix(ps_18S, colnames="ID_friendly")
 #' @export
+
 phyloseqToMatrix <- function(ps, colname, rowname="Species") {
   require(phyloseq)
   tax <- as.matrix(ps@tax_table@.Data)
   tax_levels <- length(rank_names(ps))+1
   count <- t(as.matrix(ps@otu_table@.Data))
   metadata <- as.data.frame(ps@sam_data)
+  metadata$NAME <- rownames(metadata)
   colnames(count) <- metadata[[colname]]
   ASV <- as.data.frame(merge(tax,count, by=0))
   rownames(ASV) <- ASV[[rowname]]
@@ -234,8 +236,9 @@ relevantSpecies <- function(ps, method="logRaw", cutoff=0.75, mincount=10, desig
   }
 
   if (method=="vst") {
-    ps <- getVst(ps, design)
-    ps <- filter_taxa(ps, function(x) sum(x>0)>=((length(x)*cutoff)),TRUE)
+    ps1 <- getVst(ps, design)
+    ps1 <- filter_taxa(ps, function(x) sum(x>0)>=((length(x)*cutoff)),TRUE)
+    ps <- prune_taxa(taxa_names(ps1), ps)
   }
 
   return(ps)
@@ -380,3 +383,73 @@ getSignificant <- function(ps, design, number = 50, alpha = 0.01, vst=FALSE) {
 
 
 
+
+
+
+#' Plot a foodweb with statistical DESeq2 analysi results, using bipartites plotweb.
+#'
+#' @param ps (Required) An S4 class phyloseq object.
+#' @param design (Required) A ~ variable character string. Representing a column in the sample dataset.
+#' @param group (Required) Character string.
+#' @param sigcol (Optional, default="Red") Character string. R-base color to represent significans.
+#' @param nonsigcol (Optional, default="Green") Character string. R-base color to represent significans.
+#' @param medsigcol (Optional, default="Blue") Character string. R-base color to represent significans.
+#' @param ... (Opltional) See bipartite::plotweb for more options.
+#' @return A bipartite::plotweb graph.
+#' @examples
+#' data(ps_18S)
+#' ps <- ps_18S %>%
+#' subset_samples(MONTH=="aug") %>% # Synchaeta is selected
+#' subset_samples(SORTED_type=="Rotifer") %>% # Synchaeta from may is removed.
+#' subset_taxa(Class!="Rotifera") %>%
+#' relevantSpecies(method = "vst", cutoff=0.3, design = ~SORTED_genus) %>%
+#' foodweb(design= ~SORTED_genus, group= "SORTED_genus")
+#' @export
+
+foodweb <- function(ps, design, group,
+                    sigcol="Red", nonsigcol="Green",medsigcol="Blue", ...) {
+
+  require(magrittr)
+  require(bipartite)
+  require(phyloseq)
+  require(DESeq2)
+
+  sigtab <- phyloseq_to_deseq2(ps, design) %>%
+    DESeq() %>%
+    results()
+
+  sigtab <- cbind(as(sigtab, "data.frame"),
+                  as(tax_table(ps)[rownames(sigtab), ], "matrix"))
+  p.table <- sigtab$padj
+  names(p.table) <- sigtab$Species
+
+  psmatrix <- ps %>%
+    getVst(design) %>%
+    merge_samples(group) %>%
+    phyloseqToMatrix("NAME","Species")
+
+  pcolors <- vector()
+  for (x in row.names(psmatrix)) {
+    if (is.na(p.table[[x]])) {
+      p.table[[x]]<-1
+    }
+    if (p.table[[x]]<=0.01) {
+      pcolors <- c(pcolors, sigcol)
+    } else {
+      if (p.table[[x]]<=0.05) {
+        pcolors <- c(pcolors, medsigcol)
+      } else {
+        pcolors <- c(pcolors, nonsigcol)
+      }
+    }
+  }
+
+  plotweb(psmatrix,
+          method="normal",
+          col.low = pcolors,
+          col.high = "blue4",bor.col.high = "blue4",
+          bor.col.low = "white",
+          col.interaction = c("darkgray", "dimgrey"),
+          bor.col.interaction = c("dimgrey", "darkgrey"),
+          ...)
+}

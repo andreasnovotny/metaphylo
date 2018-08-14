@@ -216,7 +216,7 @@ dds_table
 plot <- ps_16S %>% 
   subset_samples(SORTED_genus == "Synchaeta") %>% # Select synchaeta
   relevantSpecies(method = "vst", cutoff = 0.75, design = ~ ID_friendly) %>% # Taxa that are present in less than 70% of the samples are filtered away.
-  abundancePlot(x = "Species", fill = "Genus")
+  abundancePlot(x = "Species", fill = "Class")
 plot
 
 ```
@@ -284,7 +284,7 @@ library(bipartite) # Install Bipartite if it is not installed.
 
 ps_18S %>% 
   subset_samples(SORTED_genus=="Keratella") %>%
-  subset_taxa(Species != "Rotifera_XX_x_x") %>% 
+  subset_taxa(Species != "Keratella_quadratap") %>% 
   phyloseqToMatrix(colname="ID_friendly", rowname="Species") %>%
   plotweb(method="normal") # Plot from the Bipartite package.
 
