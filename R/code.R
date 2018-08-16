@@ -226,7 +226,7 @@ deseqTable <- function(ps, design, speciesAsNames=TRUE) {
 #' ps_16S <- relevantSpecies(ps_16S, method = "vst", cutoff = 0.75, design = ~ ID_friendly)
 #' @export
 
-relevantSpecies <- function(ps, method="logRaw", cutoff=0.75, mincount=10, design) {
+relevantSpecies <- function(ps, method="logRaw", cutoff=0.75, mincount=2, design) {
 
   require(phyloseq)
 
@@ -237,7 +237,7 @@ relevantSpecies <- function(ps, method="logRaw", cutoff=0.75, mincount=10, desig
 
   if (method=="vst") {
     ps1 <- getVst(ps, design)
-    ps1 <- filter_taxa(ps, function(x) sum(x>0)>=((length(x)*cutoff)),TRUE)
+    ps1 <- filter_taxa(ps1, function(x) sum(x>mincount)>=((length(x)*cutoff)),TRUE)
     ps <- prune_taxa(taxa_names(ps1), ps)
   }
 
@@ -386,6 +386,7 @@ getSignificant <- function(ps, design, number = 50, alpha = 0.01, vst=FALSE) {
 
 
 
+
 #' Plot a foodweb with statistical DESeq2 analysi results, using bipartites plotweb.
 #'
 #' @param ps (Required) An S4 class phyloseq object.
@@ -399,15 +400,21 @@ getSignificant <- function(ps, design, number = 50, alpha = 0.01, vst=FALSE) {
 #' @examples
 #' data(ps_18S)
 #' ps <- ps_18S %>%
-#' subset_samples(MONTH=="aug") %>% # Synchaeta is selected
-#' subset_samples(SORTED_type=="Rotifer") %>% # Synchaeta from may is removed.
+#' subset_samples(MONTH=="aug") %>%
+#' subset_samples(SORTED_type=="Rotifer") %>%
 #' subset_taxa(Class!="Rotifera") %>%
 #' relevantSpecies(method = "vst", cutoff=0.3, design = ~SORTED_genus) %>%
 #' foodweb(design= ~SORTED_genus, group= "SORTED_genus")
 #' @export
 
 foodweb <- function(ps, design, group,
-                    sigcol="Red", nonsigcol="Green",medsigcol="Blue", ...) {
+                    transform=function(x) x/sum(x)*100,
+                    sigcol="Red", nonsigcol="Green",medsigcol="Blue",
+                    col.high = "blue4",bor.col.high = "blue4",
+                    bor.col.low = "white",
+                    col.interaction = c("darkgray", "dimgrey"),
+                    bor.col.interaction = c("dimgrey", "darkgrey"),
+                    ...) {
 
   require(magrittr)
   require(bipartite)
@@ -424,7 +431,7 @@ foodweb <- function(ps, design, group,
   names(p.table) <- sigtab$Species
 
   psmatrix <- ps %>%
-    getVst(design) %>%
+    transform_sample_counts(transform) %>%
     merge_samples(group) %>%
     phyloseqToMatrix("NAME","Species")
 
@@ -447,9 +454,9 @@ foodweb <- function(ps, design, group,
   plotweb(psmatrix,
           method="normal",
           col.low = pcolors,
-          col.high = "blue4",bor.col.high = "blue4",
-          bor.col.low = "white",
-          col.interaction = c("darkgray", "dimgrey"),
-          bor.col.interaction = c("dimgrey", "darkgrey"),
+          col.high = col.high, bor.col.high = bor.col.high,
+          bor.col.low = bor.col.low,
+          col.interaction = col.interaction,
+          bor.col.interaction = bor.col.interaction,
           ...)
 }

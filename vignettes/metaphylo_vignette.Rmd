@@ -293,6 +293,18 @@ ps_18S %>%
 
 
 
+### 4.1 Condense the phyloseq object to a matrix.
+
+```{r}
+ps <- ps_18S %>% 
+  subset_samples(MONTH=="aug") %>% 
+  subset_samples(SORTED_type=="Rotifer") %>% 
+  subset_taxa(Class!="Rotifera") %>% 
+  relevantSpecies(method = "vst", cutoff=0.3, design = ~SORTED_genus) %>% 
+  foodweb(design = ~SORTED_genus, group = "SORTED_genus")
+```
+
+
 
 
 # 5. Session info
