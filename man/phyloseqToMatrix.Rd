@@ -4,7 +4,7 @@
 \alias{phyloseqToMatrix}
 \title{Writes a phyloseq object as matrix, specifying rownames as prey and colnames as species.}
 \usage{
-phyloseqToMatrix(ps, colname, rowname = "Species")
+phyloseqToMatrix(ps, colname = "NAME", rowname = "Species")
 }
 \arguments{
 \item{ps}{(Required) An class S4 class phyloseq object}

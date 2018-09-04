@@ -142,7 +142,7 @@ phyloseqToCSV <- function(ps, header, filename="./ASV.csv") {
 #' phyloseqToMatrix(ps_18S, colnames="ID_friendly")
 #' @export
 
-phyloseqToMatrix <- function(ps, colname, rowname="Species") {
+phyloseqToMatrix <- function(ps, colname="NAME", rowname="Species") {
   require(phyloseq)
   tax <- as.matrix(ps@tax_table@.Data)
   tax_levels <- length(rank_names(ps))+1
@@ -183,10 +183,10 @@ deseqTable <- function(ps, design, speciesAsNames=TRUE) {
 
   tmp <- phyloseq_to_deseq2(ps, design)
   tmp <- DESeq(tmp, test="Wald", fitType="parametric")
-  res = results(tmp, cooksCutoff = FALSE)
-  alpha = 0.01
-  sigtab = res[which(res$padj < alpha), ]
-  sigtab = cbind(as(sigtab, "data.frame"), as(tax_table(ps)[rownames(sigtab), ], "matrix"))
+  res <- results(tmp, cooksCutoff = FALSE)
+  alpha <- 0.01
+  sigtab <- res[which(res$padj < alpha), ]
+  sigtab <- cbind(as(sigtab, "data.frame"), as(tax_table(ps)[rownames(sigtab), ], "matrix"))
   if (speciesAsNames == TRUE) {
     sigtab$Sequence <- rownames(sigtab)
     rownames(sigtab) <- sigtab$Species
@@ -205,41 +205,31 @@ deseqTable <- function(ps, design, speciesAsNames=TRUE) {
 
 
 
-
-
-
-
-#' Filtering of relevant species
+#' Filtering of prevalent species.
 #'
 #' This function filters away taxa only present in few samples.
 #'
 #'
 #' @param ps (Required) A class S4 class phyloseq object.
-#' @param method (Optional, default="logRaw") "logRaw" (log transformation) or "vst" (variance stabilising DESeq2 transformation)
-#' @param cutoff (Optional, default=0.8) A numeric value between 0:1.
-#' @param mincount (Optional, default=10) An integer, bigger than 0. Abundance value as been counted as presence. Only effective if method="logRaw".
-#' @param dsign (Required if method="rsv") A ~ variable character string. Representing a column in the sample dataset.
+#' @param prevalence (Optional, default=0.75) A numeric value between 0:1. Least fraction of required presence.
+#' @param minpercent (Optional, default=0.1) Numeric value between 0:100. A percentage of total library size. Lowest number to count as presence.
 #' @return A class S4 class phyloseq object.
 #' @examples
 #' data(ps_16S)
 #' ps_16S <- subset_samples(ps_16S, SORTED_genus == "Synchaeta")
-#' ps_16S <- relevantSpecies(ps_16S, method = "vst", cutoff = 0.75, design = ~ ID_friendly)
+#' ps_16S <- prevalentSpecies(ps_16S, prevalence=0.75, minpercent=1)
 #' @export
 
-relevantSpecies <- function(ps, method="logRaw", cutoff=0.75, mincount=2, design) {
+prevalentSpecies <- function(ps, prevalence=0.75, minpercent=0.1) {
 
   require(phyloseq)
+  require(magrittr)
 
-  if (method=="logRaw") {
-    ps <- filter_taxa(ps, function(x) sum(x>mincount)>=((length(x)*cutoff)),TRUE)
-    ps <- transform_sample_counts(ps, function(x) log(x))
-  }
-
-  if (method=="vst") {
-    ps1 <- getVst(ps, design)
-    ps1 <- filter_taxa(ps1, function(x) sum(x>mincount)>=((length(x)*cutoff)),TRUE)
-    ps <- prune_taxa(taxa_names(ps1), ps)
-  }
+  ps <- ps %>%
+    transform_sample_counts(function(x) (x/sum(x))*100) %>%
+    filter_taxa(function(x) sum(x>minpercent)>=((length(x)*prevalence)),TRUE) %>%
+    taxa_names() %>%
+    prune_taxa(ps)
 
   return(ps)
 }
@@ -297,7 +287,7 @@ abundancePlot <- function(ps, x="Species", fill="Genus") {
     psmelt() %>%
     ggplot(aes_string(x=x, y="Abundance", fill=fill)) +
     geom_boxplot() +
-    geom_point() +
+    geom_point(aes(shape="FILTER_poresize")) +
     #labs(x="Genus", y="Log(Gene Abundance)") +
     theme_bw() +
     graph_theme
@@ -382,42 +372,20 @@ getSignificant <- function(ps, design, number = 50, alpha = 0.01, vst=FALSE) {
 }
 
 
-
-
-
-
-
-#' Plot a foodweb with statistical DESeq2 analysi results, using bipartites plotweb.
+#' DESeq2 analysis: p.adj named vector.
 #'
 #' @param ps (Required) An S4 class phyloseq object.
 #' @param design (Required) A ~ variable character string. Representing a column in the sample dataset.
-#' @param group (Required) Character string.
-#' @param sigcol (Optional, default="Red") Character string. R-base color to represent significans.
-#' @param nonsigcol (Optional, default="Green") Character string. R-base color to represent significans.
-#' @param medsigcol (Optional, default="Blue") Character string. R-base color to represent significans.
-#' @param ... (Opltional) See bipartite::plotweb for more options.
-#' @return A bipartite::plotweb graph.
+#' @return A Named vector of p.adj values per species.
 #' @examples
 #' data(ps_18S)
-#' ps <- ps_18S %>%
-#' subset_samples(MONTH=="aug") %>%
-#' subset_samples(SORTED_type=="Rotifer") %>%
-#' subset_taxa(Class!="Rotifera") %>%
-#' relevantSpecies(method = "vst", cutoff=0.3, design = ~SORTED_genus) %>%
-#' foodweb(design= ~SORTED_genus, group= "SORTED_genus")
+
+
 #' @export
 
-foodweb <- function(ps, design, group,
-                    transform=function(x) x/sum(x)*100,
-                    sigcol="Red", nonsigcol="Green",medsigcol="Blue",
-                    col.high = "blue4",bor.col.high = "blue4",
-                    bor.col.low = "white",
-                    col.interaction = c("darkgray", "dimgrey"),
-                    bor.col.interaction = c("dimgrey", "darkgrey"),
-                    ...) {
+pVector <- function(ps, design){
 
   require(magrittr)
-  require(bipartite)
   require(phyloseq)
   require(DESeq2)
 
@@ -427,36 +395,247 @@ foodweb <- function(ps, design, group,
 
   sigtab <- cbind(as(sigtab, "data.frame"),
                   as(tax_table(ps)[rownames(sigtab), ], "matrix"))
-  p.table <- sigtab$padj
-  names(p.table) <- sigtab$Species
 
-  psmatrix <- ps %>%
-    transform_sample_counts(transform) %>%
-    merge_samples(group) %>%
-    phyloseqToMatrix("NAME","Species")
+  p.vector <- sigtab$padj
+  names(p.vector) <- sigtab$Species
+
+  return(p.vector)
+}
+
+
+
+
+
+
+
+
+#' Not exported. Fit colors to matrix.
+#'
+#' @param psmatrix (Required) A matrix (see phyloseqToMatrix).
+#' @param pvector (Required) A named vector with of p-values per taxa (see pVector)
+#' @param sigcol (Optional, default="Red") Character string. R-base color to represent significans.
+#' @param nonsigcol (Optional, default="Green") Character string. R-base color to represent significans.
+#' @param medsigcol (Optional, default="Blue") Character string. R-base color to represent significans.
+#' @return A vector with colrs.
+
+
+pColors <- function(psmatrix, pvector,
+                    sigcol="Red",
+                    nonsigcol="Green",
+                    medsigcol="Blue"){
 
   pcolors <- vector()
   for (x in row.names(psmatrix)) {
-    if (is.na(p.table[[x]])) {
-      p.table[[x]]<-1
+    if (is.na(pvector[[x]])) {
+      pvector[[x]]<-1
     }
-    if (p.table[[x]]<=0.01) {
+    if (pvector[[x]]<=0.01) {
       pcolors <- c(pcolors, sigcol)
     } else {
-      if (p.table[[x]]<=0.05) {
+      if (pvector[[x]]<=0.05) {
         pcolors <- c(pcolors, medsigcol)
       } else {
         pcolors <- c(pcolors, nonsigcol)
       }
     }
   }
+  return(pcolors)
+}
 
-  plotweb(psmatrix,
-          method="normal",
-          col.low = pcolors,
+
+
+
+
+
+#' A wrapper function for bipartite::plotweb
+#'
+#' @param psmatrix (Required) A matrix (see phyloseqToMatrix).
+#' @param pvector (Required) A named vector with of p-values per taxa (see pVector)
+#' @param sigcol (Optional) Character string. R-base color to represent significans.
+#' @param nonsigcol (Optional, default="Green") Character string. R-base color to represent significans.
+#' @param medsigcol (Optional, default="Blue") Character string. R-base color to represent significans.
+#' @param ... (Opltional) See bipartite::plotweb for more options.
+#' @return A bipartite::plotweb graph.
+#' @examples
+#' data(ps_18S)
+#'
+#' @export
+
+foodWeb <- function(psmatrix, pvector,
+                    col.high = "blue4",bor.col.high = "blue4",
+                    bor.col.low = "white",
+                    col.interaction = c("darkgray", "dimgrey"),
+                    bor.col.interaction = c("dimgrey", "darkgrey"),
+                    sigcol="Red", nonsigcol="Green", medsigcol="Blue",
+                    ...){
+
+  require(bipartite)
+
+  pcolors <- pColors(psmatrix, pvector,
+                     sigcol=sigcol,
+                     nonsigcol=nonsigcol,
+                     medsigcol=medsigcol)
+
+  plotweb(psmatrix, method="normal",
+          col.low = pcolors, bor.col.low = bor.col.low,
           col.high = col.high, bor.col.high = bor.col.high,
-          bor.col.low = bor.col.low,
           col.interaction = col.interaction,
           bor.col.interaction = bor.col.interaction,
           ...)
+}
+
+
+
+#' Sort a phyloseq object by presence of prevalent taxa in another phyloseq object
+#'
+#' A wrapper function for phyloseq::prune_taxa
+#'
+#' @param ps_1 (Required) A phyloseq object to be filtered.
+#' @param ps_2 (Required) A phyloseq object to filter by.
+#' @param minpercent (Optional, default=1) Character string. R-base color to represent significans.
+#' @return A filtered phyloseq object.
+#' @examples
+#' data(ps_18S)
+#'
+#' @export
+
+sortByWater <- function(ps_1, ps_2, minpercent=1) {
+
+  require(phyloseq)
+  require(magrittr)
+
+  ps_1 <- ps_2 %>%
+    transform_sample_counts(function(x) x/sum(x)*100) %>%
+    filter_taxa(function(x) sum(x)> minpercent, TRUE) %>%
+    taxa_names() %>%
+    prune_taxa(ps_1)
+
+  return(ps_1)
+}
+
+#' Construct Summary table for barplots
+#'
+#' This function takes a phyloseq as unput (or possibly a tidy data-frame) and transforms it into a summary table.
+#'
+#' @param data (Required) A phyloseq object or a data frame.
+#' @param x (Optional, default="Genus") Character string referring to the main explainatory variable.
+#' @param y (Optional, default="Abundance") Character string reffering to the dependent variable. For phyloseq objects, this is always "Abundance".
+#' @param variables (optional, default=c("Family", "Class", "Order")) A vector of strings reffereng to any aditional explainatory variable for plotting/colouring/splitting/grouping ect.
+#' @return A formated data.frame. The aim of the data frame is to use for plotting in ggplot (or the wrapper metaphylo::barChart)
+#' @examples
+#' data(ps_18S)
+#' ps_18S %>%
+#'  subset_samples(SORTED_genus=="Synchaeta") %>%
+#'  subset_samples(MONTH=="aug") %>%
+#'  subset_taxa(Class!="Rotifera") %>%
+#'  transform_sample_counts(function(x) (x/sum(x))*100) %>%
+#'  filter_taxa(function(x) sum(x>1)>=((length(x)*0.5)),TRUE) %>%
+#'  sumTable(x = "Species", variables = c("Class", "Order"))
+#' @export
+
+sumTable <- function(data, x="Genus", y="Abundance", variables=c("Family", "Class", "Order")) {
+
+  require(phyloseq)
+  require(magrittr)
+
+  if (class(data)=="phyloseq") {
+    data <- data %>%
+      filter_taxa(function(x) sum(x)>0, TRUE) %>%
+      psmelt()
+  }
+
+  BY <- list(x = data[[x]])
+  for (entry in variables)  {
+    BY[[entry]] <- data[[entry]]
+  }
+
+  SumTable <- aggregate(data[[y]],
+                        by =BY,
+                        FUN = function(x) c(mean = mean(x),
+                                            sd = sd(x),
+                                            n = length(x)))
+
+
+  SumTable <- do.call(data.frame, SumTable)
+  SumTable$se <- SumTable$x.sd / sqrt(SumTable$x.n)
+  colnames(SumTable) <- c(x, variables,"mean", "sd", "n", "se")
+  SumTable <- SumTable[order(SumTable[2,])]
+  return(SumTable)
+}
+
+
+
+
+
+#' barCharts out of a summaryTable using ggplot2
+#'
+#' This function takes a phyloseq as unput (or possibly a tidy data-frame) and transforms it into a summary table.
+#'
+#' @param sumtable (Required) A dataframe (preferably the output of metaphylo::sumTable function)
+#' @param x (Optional, default="Genus") Character string referring to the main explainatory variable.
+#' @param fill (optional, default="Order") A string reffereng to any aditional explainatory variable for filling.
+#' @param errorbars (Optional, default=TRUE) Boolean operator. If True, standard error is plotted as errorbars.
+#' @param ... Any aditional variables passed on to geom_bar(...)
+#' @return A ggplot object. The aim of the data frame is to use for plotting in ggplot (or the wrapper metaphylo::barChart)
+#' @examples
+#' data(ps_18S)
+#' ps_18S %>%
+#'  subset_samples(SORTED_genus=="Synchaeta") %>%
+#'  subset_samples(MONTH=="aug") %>%
+#'  subset_taxa(Class!="Rotifera") %>%
+#'  transform_sample_counts(function(x) (x/sum(x))*100) %>%
+#'  filter_taxa(function(x) sum(x>1)>=((length(x)*0.5)),TRUE) %>%
+#'  sumTable(x = "Species", variables = c("Class", "Order")) %>%
+#'  barChart(x = "Family", fill = "Class")
+#' @export
+
+barChart <- function(sumtable, x="Genus", fill="Order", errorbars=TRUE, ...) {
+
+  require(ggplot2)
+
+  plot <- ggplot(sumtable, aes(x = sumtable[[x]], y = mean)) +
+    geom_bar(aes(fill=sumtable[[fill]]), stat = "identity", ...) +
+    xlab(x) + labs(fill=fill) +
+    theme(axis.text.x = element_text(angle = 90))
+
+  if (errorbars==TRUE) {
+    plot <- plot +
+      geom_errorbar(aes(ymax = sumtable$mean+sumtable$se,
+                        ymin = sumtable$mean-sumtable$se),
+                    position = position_dodge(width = 0.9),
+                    width = 0.25)
+  }
+
+
+  return(plot)
+}
+
+
+#' Plot BarCharts from phyloseq object
+#'
+#' This is a wrapper function around the two functions sumTable and barChart for phyloseq objects.
+#'
+#' @param ps (Required) Phyloseq object
+#' @param x (Optional, default="Genus") Character string referring to the main explainatory variable.
+#' @param variables (optional, default=c("Order")) A vector of strings reffereng to any aditional explainatory variables. First string will be used for "fill".
+#' @param errorbars (Optional, default=TRUE) Boolean operator. If True, standard error is plotted as errorbars.
+#' @param ... Any aditional variables passed on to geom_bar(...)
+#' @return A ggplot object.
+#' @examples
+#' data(ps_18S)
+#' ps_18S %>%
+#'  subset_samples(SORTED_genus=="Synchaeta") %>%
+#'  subset_samples(MONTH=="aug") %>%
+#'  subset_taxa(Class!="Rotifera") %>%
+#'  transform_sample_counts(function(x) (x/sum(x))*100) %>%
+#'  filter_taxa(function(x) sum(x>1)>=((length(x)*0.5)),TRUE) %>%
+#'  phyloseqBarChart(x="Genus", variables=c("Order"))
+#' @export
+
+phyloseqBarChart <- function(ps, x="Genus", variables=c("Order"), errorbars=TRUE, ...) {
+
+  plot <- ps %>%
+    sumTable(x = x, y= "Abundance", variables=variables) %>%
+    barChart(x = x, fill=variables[1], errorbars=errorbars, ...)
+  return(plot)
 }

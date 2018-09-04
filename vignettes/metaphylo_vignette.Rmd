@@ -2,10 +2,8 @@
 title: "Analysing Plankton Diet Metabarcoding Data"
 author: "Andreas Novotny"
 date: "`r Sys.Date()`"
-vignette: >
-  %\VignetteIndexEntry{Analysing Plankton Diet Metabarcoding Data}
-  %\VignetteEngine{knitr::rmarkdown}
-  \usepackage[utf8]{inputenc}
+vignette: |
+  %\VignetteIndexEntry{Analysing Plankton Diet Metabarcoding Data} %\VignetteEngine{knitr::rmarkdown} \usepackage[utf8]{inputenc}
 ---
 
 
@@ -16,6 +14,7 @@ library(phyloseq)
 library(DESeq2)
 library(tidyverse)
 library(metaphylo)
+library(bipartite)
 ```
 
 # 1. Opening data and construct a phyloseq object
@@ -112,6 +111,7 @@ sample_variables(ps_16S) # Metadata variables
 rank_names(ps_16S) # Taxonomic levels
 
 get_variable(ps_16S, "SORTED_type") # Access any metadata variable
+
 ```
 
 
@@ -125,7 +125,6 @@ get_variable(ps_16S, "SORTED_type") # Access any metadata variable
 # To get samples from August:
 ss <- subset_samples(ps_16S, MONTH=="aug")
 get_variable(ss, "ID_friendly")
-
 #To get only rotifers:
 ss <- subset_samples(ps_16S, SORTED_type=="Rotifer")
 get_variable(ss, "ID_friendly")
@@ -138,6 +137,7 @@ get_variable(ss, "ID_friendly")
 # To get only the chloroplast taxonomy
 ss <- subset_taxa(ps_16S, Domain=="Chloroplast")
 ss # Only 100 taxa left
+
 ```
 
 *filter_taxa* allows for filtering by the abundance data. This is done by using a logical function(x).
@@ -301,7 +301,7 @@ ps <- ps_18S %>%
   subset_samples(SORTED_type=="Rotifer") %>% 
   subset_taxa(Class!="Rotifera") %>% 
   relevantSpecies(method = "vst", cutoff=0.3, design = ~SORTED_genus) %>% 
-  foodweb(design = ~SORTED_genus, group = "SORTED_genus")
+  foodWeb(design = ~SORTED_genus, group = "SORTED_genus")
 ```
 
 
