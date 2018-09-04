@@ -201,25 +201,29 @@ dds_table
 
 ### 3.2 Select relevant prey organisms and make boxplot
 
-*relevantSpecies* Is a way to select for "frequency of occurrence". Here the "cutoff" has an essential function.
+*prevalentSpecies* Is a way to select for "frequency of occurrence". Here the "cutoff" has an essential function.
 
-*abundancePlot* is a way to plot the abundance of different taxa among replicates of samples. (Uses Box plot of ggplot)
+*phyloseqBarChart* is a way to plot the abundance of different taxa among replicates of samples. (Uses geom_bar and geom_errorbar of ggplot.
 
-```{r eval=FALSE}
-?relevantSpecies
-?abundancePlot
+```{r}
+?prevalentSpecies
+?phyloseqBarChart
 ```
+
 
 
 ```{r message=FALSE}
 
-plot <- ps_16S %>% 
-  subset_samples(SORTED_genus == "Synchaeta") %>% # Select synchaeta
-  relevantSpecies(method = "vst", cutoff = 0.75, design = ~ ID_friendly) %>% # Taxa that are present in less than 70% of the samples are filtered away.
-  abundancePlot(x = "Species", fill = "Class")
-plot
-
+ps_16S %>% 
+  subset_samples(SORTED_genus=="Synchaeta") %>% 
+  subset_samples(MONTH=="aug") %>%
+  subset_taxa(Family!="Burkholderiaceae") %>%
+  prevalentSpecies(prevalence=0.6, minpercent = 1) %>%
+  transform_sample_counts(function(x) x/sum(x)*100) %>% 
+  phyloseqBarChart(x = "Genus", variables=c("Phylum"), errorbar=TRUE)
+  
 ```
+
 
 
 ### 3.3 Create heat map of significant and relevant fold change expressions
@@ -234,7 +238,7 @@ First we make a list of relevant taxa, that are present in many of the samples:
 relevant_otu <- ps_16S %>% 
   subset_samples(SORTED_genus=="Synchaeta") %>% # Synchaeta is selected
   subset_samples(MONTH!="may") %>% # Synchaeta from may is removed.
-  relevantSpecies(method = "vst", cutoff=0.3, design = ~MONTH) %>% # Taxa has to be present in more than 30% of the samples.
+  prevalentSpecies(prevalence=0.3, minpercent = 1) %>% # Taxa has to be present in more than 30% of the samples. 1% conts as presence.
   taxa_names()
 ```
 
@@ -273,7 +277,7 @@ ps_16S %>%
 
 ### 4.1 Condense the phyloseq object to a matrix.
 
-Many R-packages and plots require a simple matrix as an input object. (Visweb, Plotweb ect). The ´phyloseqToMatrix* function condenses the phyloseq object to a matrix with custom specified rownames and colnames.
+Many R-packages and plots require a simple matrix as an input object. (Visweb, Plotweb ect). The *phyloseqToMatrix* function condenses the phyloseq object to a matrix with custom specified rownames and colnames.
 
 ```{r message=FALSE}
 library(bipartite) # Install Bipartite if it is not installed.
@@ -293,21 +297,52 @@ ps_18S %>%
 
 
 
-### 4.1 Condense the phyloseq object to a matrix.
+### 5. Combining bipartites "plotweb" with DESeq2 statistical analysis - the foodWeb function.
 
-```{r}
-ps <- ps_18S %>% 
-  subset_samples(MONTH=="aug") %>% 
-  subset_samples(SORTED_type=="Rotifer") %>% 
+*foodWeb* and *pVector* is used to construct a foodweb containing information of significantly different species:
+
+
+First, as usual we filter the phyloseq:
+
+```{r echo=FALSE, message=FALSE}
+ps <- ps_18S
+
+#This is an alternative way of subsetting the phyloseq object:
+# First we make three different subsetts: a b c
+
+a <- ps %>% 
+  subset_samples(SORTED_type=="Rotifer") %>%
+  sample_names()
+b <- ps %>% 
+  subset_samples(SORTED_genus=="Helicostoma") %>% 
+  sample_names() 
+c <- ps %>% 
+  subset_samples(SORTED_type=="Flagellate") %>% 
+  sample_names()
+
+# Then we combine those a b c with the prune_samples function.
+  
+d <- c(a,b,c) %>% 
+  prune_samples(ps) %>% 
   subset_taxa(Class!="Rotifera") %>% 
-  relevantSpecies(method = "vst", cutoff=0.3, design = ~SORTED_genus) %>% 
-  foodWeb(design = ~SORTED_genus, group = "SORTED_genus")
+  subset_taxa(Genus!="Helicostomella") %>% 
+  subset_samples(MONTH == "aug")
 ```
 
+Now we make the DESeq2 statistical analysis. *pVector* will make a list of taxa, together with respective p-value.
+
+```{r echo=FALSE, message=FALSE}
+pvector <- pVector(d, design = ~SORTED_genus)
+```
+
+** This foodWeb looks horrible** I have to figure out whats wrong....
 
 
 
-# 5. Session info
+
+
+
+# 6. Session info
 
 ```{r}
 sessionInfo()
