@@ -559,7 +559,8 @@ sumTable <- function(data, x="Genus", y="Abundance", variables=c("Family", "Clas
   SumTable <- do.call(data.frame, SumTable)
   SumTable$se <- SumTable$x.sd / sqrt(SumTable$x.n)
   colnames(SumTable) <- c(x, variables,"mean", "sd", "n", "se")
-  SumTable <- SumTable[order(SumTable[2,])]
+  SumTable$my.order <- seq(from=1, to=length(SumTable[,1]), by=1)
+
   return(SumTable)
 }
 
@@ -593,7 +594,7 @@ barChart <- function(sumtable, x="Genus", fill="Order", errorbars=TRUE, ...) {
 
   require(ggplot2)
 
-  plot <- ggplot(sumtable, aes(x = sumtable[[x]], y = mean)) +
+  plot <- ggplot(sumtable, aes(x = reorder(sumtable[[x]],sumtable$my.order), y = mean)) +
     geom_bar(aes(fill=sumtable[[fill]]), stat = "identity", ...) +
     xlab(x) + labs(fill=fill) +
     theme(axis.text.x = element_text(angle = 90))
