@@ -4,10 +4,19 @@
 \alias{foodWeb}
 \title{A wrapper function for bipartite::plotweb}
 \usage{
-foodWeb(psmatrix, pvector, col.high = "blue4", bor.col.high = "blue4",
-  bor.col.low = "white", col.interaction = c("darkgray", "dimgrey"),
-  bor.col.interaction = c("dimgrey", "darkgrey"), sigcol = "Red",
-  nonsigcol = "Green", medsigcol = "Blue", ...)
+foodWeb(
+  psmatrix,
+  pvector,
+  col.high = "blue4",
+  bor.col.high = "blue4",
+  bor.col.low = "white",
+  col.interaction = c("darkgray", "dimgrey"),
+  bor.col.interaction = c("dimgrey", "darkgrey"),
+  sigcol = "Red",
+  nonsigcol = "Green",
+  medsigcol = "Blue",
+  ...
+)
 }
 \arguments{
 \item{psmatrix}{(Required) A matrix (see phyloseqToMatrix).}

@@ -219,8 +219,7 @@ deseqTable <- function(ps, design, speciesAsNames=TRUE) {
 #' ps_16S <- subset_samples(ps_16S, SORTED_genus == "Synchaeta")
 #' ps_16S <- prevalentSpecies(ps_16S, prevalence=0.75, minpercent=1)
 #' @export
-
-prevalentSpecies <- function(ps, prevalence=0.75, minpercent=0.1) {
+prevalentSpecies  <- function(ps, prevalence=0.75, minpercent=0.1) {
 
   require(phyloseq)
   require(magrittr)
@@ -513,6 +512,9 @@ sortByWater <- function(ps_1, ps_2, minpercent=1) {
   return(ps_1)
 }
 
+
+
+
 #' Construct Summary table for barplots
 #'
 #' This function takes a phyloseq as unput (or possibly a tidy data-frame) and transforms it into a summary table.
@@ -538,12 +540,14 @@ sumTable <- function(data, x="Genus", y="Abundance", variables=c("Family", "Clas
   require(phyloseq)
   require(magrittr)
 
+  # 1. Converts the phyloseq object to a dataframe, and deleats empty rows
   if (class(data)=="phyloseq") {
     data <- data %>%
       filter_taxa(function(x) sum(x)>0, TRUE) %>%
       psmelt()
   }
 
+  # 2. Construct the summary table
   BY <- list(x = data[[x]])
   for (entry in variables)  {
     BY[[entry]] <- data[[entry]]
@@ -555,11 +559,14 @@ sumTable <- function(data, x="Genus", y="Abundance", variables=c("Family", "Clas
                                             sd = sd(x),
                                             n = length(x)))
 
-
   SumTable <- do.call(data.frame, SumTable)
   SumTable$se <- SumTable$x.sd / sqrt(SumTable$x.n)
   colnames(SumTable) <- c(x, variables,"mean", "sd", "n", "se")
+
+  # Sort the summary table in nice order
+  SumTable <- SumTable[with(SumTable, order(SumTable[[variables[1]]],-mean)),]
   SumTable$my.order <- seq(from=1, to=length(SumTable[,1]), by=1)
+
 
   return(SumTable)
 }
@@ -594,19 +601,22 @@ barChart <- function(sumtable, x="Genus", fill="Order", errorbars=TRUE, ...) {
 
   require(ggplot2)
 
-  plot <- ggplot(sumtable, aes(x = reorder(sumtable[[x]],sumtable$my.order), y = mean)) +
-    geom_bar(aes(fill=sumtable[[fill]]), stat = "identity", ...) +
+  plot <- ggplot(sumtable) +
+    geom_bar(aes(x = reorder(sumtable[[x]],sumtable$my.order), y = mean,fill=sumtable[[fill]]), stat = "identity", ...) +
     xlab(x) + labs(fill=fill) +
     theme(axis.text.x = element_text(angle = 90))
 
   if (errorbars==TRUE) {
     plot <- plot +
-      geom_errorbar(aes(ymax = sumtable$mean+sumtable$se,
-                        ymin = sumtable$mean-sumtable$se),
-                    position = position_dodge(width = 0.9),
-                    width = 0.25)
+      geom_errorbar(aes(x = reorder(sumtable[[x]],sumtable$my.order),
+                        ymax = sumtable$mean+sumtable$se,
+                        ymin = sumtable$mean-sumtable$se,
+                        position = position_dodge(width = 0.9),
+                        width = 0.25)
+      )
   }
 
+  ?geom_errorbar
 
   return(plot)
 }
@@ -633,10 +643,256 @@ barChart <- function(sumtable, x="Genus", fill="Order", errorbars=TRUE, ...) {
 #'  phyloseqBarChart(x="Genus", variables=c("Order"))
 #' @export
 
-phyloseqBarChart <- function(ps, x="Genus", variables=c("Order"), errorbars=TRUE, ...) {
+phyloseqBarChart <- function(ps, x="Genus", y= "Abudance", variables=c("Order"), errorbars=TRUE, ...) {
 
   plot <- ps %>%
-    sumTable(x = x, y= "Abundance", variables=variables) %>%
+    sumTable(x = x, y= y, variables=variables) %>%
     barChart(x = x, fill=variables[1], errorbars=errorbars, ...)
   return(plot)
 }
+
+
+
+
+
+
+
+#' Subset phyloseq object based on sample data
+#'
+#' Instead of using phyloseq::subset_samples.
+#'
+#' @param physeq (Required) Phyloseq object
+#' @param variable (Required) Character string referring to variable name in Sample data.
+#' @param value (Required) Character string, or vector of character string.
+#' @return Philtered phyloseq
+#' @examples
+#' data(ps_18S)
+#' ps_18S %>%
+#'  select_samples("SORTED_genus","Keratella")
+#' ps_18S %>%
+#'  select_samples("SORTED_genus",c("Keratella", "Synchaeta"))
+#' @export
+
+select_samples <- function (physeq, variable, value) {
+
+  if (is.null(sample_data(physeq))) {
+    cat("Nothing subset. No sample_data in physeq.\n")
+    return(physeq)
+
+  } else {
+    oldDF <- as(sample_data(physeq), "data.frame")
+    newDF <- oldDF[which(oldDF[[variable]] %in% value),]
+
+    if (class(physeq) == "sample_data") {
+      return(sample_data(newDF))
+
+    } else {
+      sample_data(physeq) <- sample_data(newDF)
+      return(physeq)
+    }
+  }
+}
+
+
+
+
+
+#' Filtering of prevalent species, multiple sample groups.
+#'
+#' This function filters away taxa only present in few samples.
+#'
+#'
+#' @param ps (Required) A class S4 class phyloseq object.
+#' @param variable (Required) Character string referring to variable name in Sample data. Subseting variable.
+#' @param prevalence (Optional, default=0.75) A numeric value between 0:1. Least fraction of required presence.
+#' @param minpercent (Optional, default=0.1) Numeric value between 0:100. A percentage of total library size. Lowest number to count as presence.
+#' @return A class S4 class phyloseq object, filtered.
+#' @examples
+#' data(ps_16S)
+#' ps_16S <- subset_samples(ps_16S, SORTED_genus == "Synchaeta")
+#' ps_16S <- prevalentSpecies(ps_16S, prevalence=0.75, minpercent=1)
+#' @export
+
+filterPrevalentSpecies <- function(ps, variable, prevalence=0.6, minpercent=0) {
+
+  require(metaphylo)
+  require(phyloseq)
+  require(magrittr)
+
+  uniques <- ps %>%
+    get_variable(variable) %>%
+    base::unique()
+
+  c <- 0
+  for (x in uniques) {
+    c <- c+1
+    single.ps <- ps %>%
+      select_samples(variable, x) %>%
+      prevalentSpecies(prevalence=prevalence, minpercent=minpercent)
+    if (c==1) {
+      merged.ps <- single.ps
+    } else {
+      merged.ps <- merge_phyloseq(merged.ps, single.ps)
+    }
+  }
+  filtered.ps <- merged.ps %>%
+    taxa_names() %>%
+    prune_taxa(ps)
+
+  print(paste("Prevalence filtering based on",length(uniques),"sample groups:"))
+  print(paste(uniques))
+  return(filtered.ps)
+}
+
+
+
+
+
+
+
+
+#' LARGE WRAPPER: Summarizing RRA and FOC for phyloseq objet
+#'
+#' This function filters away taxa only present in few samples.
+#' Constructs Relative read count tables and frequency of occurance tables
+#'
+#'
+#' @param ps (Required) A class S4 class phyloseq object.
+#' @param variable (Required) Variable name in Sample data. Subseting variable.
+#' @param prevalence (Optional, default=0.6) A numeric value between 0:1. Least fraction of required presence.
+#' @param rowname (Required) Only evaluated if PS_output=FALSE. This has to be the taxonomic rank with the highest available resolution. (Refer to phyloseq::tax_glom)
+#' @return A list of two phyloseq objects, OR A list of two matrices. (See PS_output)
+#' @examples
+#' data(ps_18S)
+#' ps_18S <- subset_samples(ps_18S, SORTED_genus == "Synchaeta") %>%
+#' tax_glom("Family") %>%
+#' summarizedPhyloseq(variable="MONTH")
+#'
+#' @export
+
+summarizedPhyloseq <- function(ps = synchaeta_18S, variable = MONTH, rowname=Family, prevalence=0.6) {
+
+  require(phyloseq)
+  require(magrittr)
+  require(metagMisc)
+
+  # Passing values for tidy evaluation
+  variable__ <- deparse(substitute(variable))
+  rowname__ <- deparse(substitute(rowname))
+  variable_ <- enquo(variable)
+  rowname_ <- enquo(rowname)
+
+  # First rare species are discarded
+  filtered_ps <- ps %>%
+    transform_sample_counts(function(x) x/sum(x)) %>% # Sanple counts are ransformed into
+    filterPrevalentSpecies(variable = variable__, prevalence=prevalence, minpercent=0)
+
+  # Next results are summarized acording to relative read abundance (mean).
+  RRA_mx <- filtered_ps %>%
+    psmelt() %>%
+    group_by(!!variable_, !!rowname_) %>%
+    summarise(Abundance = mean(Abundance)) %>%
+    spread(key = variable__, value = Abundance) %>%
+    column_to_rownames(rowname__)
+
+  # The concept of frequency of occurance is defined.
+  foc <- function(vector) {
+    FOC <- vector %>%
+      map_dbl(function(x) ifelse(x>0, 1, 0)) %>%
+      mean()
+    return(FOC)
+  }
+
+  # Phyloseq is summarized acording to frequency of occurance.
+  FOC_mx <- filtered_ps %>%
+    psmelt() %>%
+    group_by(!!variable_, !!rowname_) %>%
+    summarise(Abundance = foc(Abundance)) %>%
+    spread(key = variable__, value = Abundance) %>%
+    column_to_rownames(rowname__)
+
+  # Outputs are combined to list object.
+  result <- list(frequency_of_occurence = FOC_mx, relative_read_abundance = RRA_mx)
+
+
+
+  # Finaly add a taxonomic for "others", i.e taxa that has been filtered out.
+  x1 <- t(base::as.matrix(1-colSums(result$relative_read_abundance)))
+  rownames(x1) <- "OTHERS"
+  result$relative_read_abundance <- rbind(result$relative_read_abundance, x1)
+
+  x2 <- matrix(1:1, ncol=ncol(x1))
+  rownames(x2) <- "OTHERS"
+  colnames(x2) <- colnames(x1)
+  result$frequency_of_occurence <- rbind(result$frequency_of_occurence, x2)
+
+  return(result)
+}
+
+
+
+
+
+#' LARGE WRAPPER: Pipartite plot of FOC and RRA data
+#'
+#' Produces bipartite plot out of summarized phyloseqobject (output of summarizedPhyloseq function)
+#' Thickness of interaction represents Relative read abundance. Color of interaction represents Frequency of occurance.
+#'
+#'
+#' @param dualmat (Required) The output of summarizedPhyloseq (i.e. a list of two matrixes.)
+#' @param col.order (Optional) Vector of strings, representing column order.
+#' @param row.order (Optional) Vector of strings, representing row order.
+#' @param foc.color (Optional, c("gray35", "gray40", "gray45", "gray50", "gray90")).
+#' @param ... (Optional). Refer to bipartite::plotweb options.
+#' @return A bipartite::plotweb plot.
+#' @examples
+#' data(ps_18S)
+#' ps_18S <- subset_samples(ps_18S, SORTED_genus == "Synchaeta") %>%
+#' tax_glom("Family") %>%
+#' summarizedPhyloseq(variable="MONTH")
+#'
+#' @export
+
+colorWeb <- function(dualmat,
+                     foc.color = c("gray35", "gray40", "gray45", "gray50", "gray90"),
+                     method = "normal",
+                     text.rot = -90,
+                     labsize =0.5,
+                     bor.col.interaction = NULL,
+                     ...) {
+
+  require(bipartite)
+
+  col.interaction <- c()
+  c <- 0
+  for (row in 1:nrow(mat$frequency_of_occurence)) {
+    for (col in 1:ncol(mat$relative_read_abundance)) {
+      c <- c+1
+      if (mat$frequency_of_occurence[row,col]>=0.9) {
+        col.interaction[c] <- foc.color[1]
+      } else {
+        if (mat$frequency_of_occurence[row,col]>=0.8) {
+          col.interaction[c] <- foc.color[2]
+        } else {
+          if (mat$frequency_of_occurence[row,col]>=0.7) {
+            col.interaction[c] <- foc.color[3]
+          } else {
+            if (mat$frequency_of_occurence[row,col]>=0.6) {
+              col.interaction[c] <- foc.color[4]
+            }else{
+              col.interaction[c] <- foc.color[5]
+            }
+          }
+        }
+      }
+    }
+  } # End of colmat
+
+  plotweb(dualmat$relative_read_abundance,
+          method = method,
+          text.rot = text.rot,
+          labsize = labsize,
+          col.interaction = col.interaction,
+          bor.col.interaction = NULL)
+
+} # End of color-web

@@ -4,8 +4,14 @@
 \alias{phyloseqBarChart}
 \title{Plot BarCharts from phyloseq object}
 \usage{
-phyloseqBarChart(ps, x = "Genus", variables = c("Order"),
-  errorbars = TRUE, ...)
+phyloseqBarChart(
+  ps,
+  x = "Genus",
+  y = "Abudance",
+  variables = c("Order"),
+  errorbars = TRUE,
+  ...
+)
 }
 \arguments{
 \item{ps}{(Required) Phyloseq object}

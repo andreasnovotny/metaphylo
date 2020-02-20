@@ -4,8 +4,13 @@
 \alias{pColors}
 \title{Not exported. Fit colors to matrix.}
 \usage{
-pColors(psmatrix, pvector, sigcol = "Red", nonsigcol = "Green",
-  medsigcol = "Blue")
+pColors(
+  psmatrix,
+  pvector,
+  sigcol = "Red",
+  nonsigcol = "Green",
+  medsigcol = "Blue"
+)
 }
 \arguments{
 \item{psmatrix}{(Required) A matrix (see phyloseqToMatrix).}

@@ -4,8 +4,12 @@
 \alias{sumTable}
 \title{Construct Summary table for barplots}
 \usage{
-sumTable(data, x = "Genus", y = "Abundance", variables = c("Family",
-  "Class", "Order"))
+sumTable(
+  data,
+  x = "Genus",
+  y = "Abundance",
+  variables = c("Family", "Class", "Order")
+)
 }
 \arguments{
 \item{data}{(Required) A phyloseq object or a data frame.}

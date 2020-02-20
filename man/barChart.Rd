@@ -4,8 +4,7 @@
 \alias{barChart}
 \title{barCharts out of a summaryTable using ggplot2}
 \usage{
-barChart(sumtable, x = "Genus", fill = "Order", errorbars = TRUE,
-  ...)
+barChart(sumtable, x = "Genus", fill = "Order", errorbars = TRUE, ...)
 }
 \arguments{
 \item{sumtable}{(Required) A dataframe (preferably the output of metaphylo::sumTable function)}
